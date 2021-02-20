@@ -2,9 +2,6 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import '@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol';
-import '@chainlink/contracts/src/v0.6/ChainlinkClient.sol';
-
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/math/SafeMath.sol';
 
@@ -15,13 +12,10 @@ import './interfaces/Oracle.sol';
 
 
 contract Allocator {
-  AggregatorV3Interface internal priceFeed;
+  IUniswapV2Router02 private uniswapRouter;
+  IUniswapV2Factory  private uniswapFactory;
 
-  IUniswapV2Router02 public uniswapRouter;
-  IUniswapV2Factory  public uniswapFactory;
-
-  // BitYield's deployed CHL Oracle
-  OracleInterface oracle;
+  OracleInterface private oracle;
 
   address internal constant UNISWAP = 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984;
   address internal constant UNISWAP_V2 = 0xB0b3B38ef1b32E98f2947e5Ba23ca765158d023B;
@@ -41,7 +35,7 @@ contract Allocator {
   mapping (string => address) private uniswapPairs;
   mapping (string => address) private priceFeeds;
 
-  event EnterMarket(address indexed _from, uint _actual);
+  event EnterMarket(address indexed _from, uint _actual, uint _given);
   event ExitMarket(address indexed _from);
 
   constructor(address oracle_) public {
@@ -86,12 +80,9 @@ contract Allocator {
 
         priceFeeds['CHAIN-ETH_USD'] = 0x9326BFA02ADD2366b30bacB125260Af641031331;
     }
-
-    // Chainlink Oracle priceFeed
-    priceFeed = AggregatorV3Interface(priceFeeds['CHAIN-ETH_USD']);
   }
 
-  function enterMarket() public payable {
+  function enterMarket(uint amount) public payable {
     require(msg.sender == owner,
       "The owner must be the contract creator"
     );
@@ -124,7 +115,7 @@ contract Allocator {
     }(0, getPathForETHtoTOKEN('TWBTC'), address(this), deadline);
 
     // (No safe failures beyond this point)
-    emit EnterMarket(msg.sender, msg.value);
+    emit EnterMarket(msg.sender, msg.value, amount);
 
     (bool success,) = msg.sender.call{ 
       value: address(this).balance 
@@ -172,21 +163,11 @@ contract Allocator {
     return uniswapRouter.getAmountsIn(twbtcAmount, getPathForETHtoTOKEN('TWBTC'));
   }
 
-  /*
-    getPair
-    -------
-    Check the uniswapFactory for a valid pair
-  */
-  function getPair(address tokenA, address tokenB) public view returns (address) {
+  function getPair(address tokenA, address tokenB) private view returns (address) {
     return uniswapFactory.getPair(tokenA, tokenB);
   }
 
-  /*
-    getRootPair
-    -----------
-    Going from the uniswapRouter.WETH, see if there is a destination to the given token address
-  */
-  function getRootPair(address destination) public view returns (address) {
+  function getRootPair(address destination) private view returns (address) {
     return uniswapFactory.getPair(uniswapRouter.WETH(), destination);
   }
 
@@ -198,20 +179,13 @@ contract Allocator {
     return path;
   }
 
-  function getTokenBalance(string memory symbol) public view returns(uint256) {
+  function getTokenBalance(string memory symbol) public view returns (uint256) {
     IERC20 token = IERC20(uniswapPairs[symbol]);
     return token.balanceOf(address(this));
   }
 
-  function getETH_USDPrice() public view returns (int) {
-    (
-        ,
-        int price,
-        ,
-        ,
-    ) = priceFeed.latestRoundData();
-
-    return price;
+  function getOracleAssetPrice(string memory symbol) public returns (int) {
+    return oracle.getAssetLatestRoundData(symbol);
   }
 
   function _withdraw(string memory symbol) private {

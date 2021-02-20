@@ -10,7 +10,7 @@ abiDocker:
 	@docker run -v /Users/alexmanelis/Development/Solidity/acme/contracts:/sources ethereum/solc:0.7.1 /sources/Exchange.sol --abi
 
 abiLocal:
-	@python abi.py build/contracts/Allocator.json
+	@python scripts/abi.py
 
 compile:
 	@truffle compile
