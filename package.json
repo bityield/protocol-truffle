@@ -7,7 +7,11 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "migrate": "./node_modules/.bin/truffle migrate",
+    "debug": "./node_modules/.bin/truffle debug",
+    "compile": "./node_modules/.bin/truffle compile",
+    "exec": "./node_modules/.bin/truffle exec",
+    "test": "./node_modules/.bin/truffle test"
   },
   "author": "",
   "license": "ISC",

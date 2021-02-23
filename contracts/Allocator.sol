@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Block27
+// SPDX-License-Identifier: Bityield
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
@@ -12,10 +12,10 @@ import './interfaces/Oracle.sol';
 
 
 contract Allocator {
-  IUniswapV2Router02 private uniswapRouter;
-  IUniswapV2Factory  private uniswapFactory;
+  IUniswapV2Router02 internal uniswapRouter;
+  IUniswapV2Factory  internal uniswapFactory;
 
-  OracleInterface private oracle;
+  OracleInterface internal oracle;
 
   address internal constant UNISWAP = 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984;
   address internal constant UNISWAP_V2 = 0xB0b3B38ef1b32E98f2947e5Ba23ca765158d023B;
@@ -28,12 +28,12 @@ contract Allocator {
   address internal beneficiary;
   address internal owner;
 
-  string private network;
-  string private constant MAINNET = "mainnet";
-  string private constant KOVAN   = "kovan";
+  string internal network;
+  string internal constant MAINNET = "mainnet";
+  string internal constant KOVAN   = "kovan";
 
-  mapping (string => address) private uniswapPairs;
-  mapping (string => address) private priceFeeds;
+  mapping (string => address) internal uniswapPairs;
+  mapping (string => address) internal priceFeeds;
 
   event EnterMarket(address indexed _from, uint _actual, uint _given);
   event ExitMarket(address indexed _from);
@@ -139,38 +139,6 @@ contract Allocator {
     emit ExitMarket(msg.sender);
   }
 
-  function getEstimatedETHforBAT(uint batAmount) public view returns (uint[] memory) {
-    return uniswapRouter.getAmountsIn(batAmount, getPathForETHtoTOKEN('BAT'));
-  }
-
-  function getEstimatedETHforCOMP(uint compAmount) public view returns (uint[] memory) {
-    return uniswapRouter.getAmountsIn(compAmount, getPathForETHtoTOKEN('COMP'));
-  }
-
-  function getEstimatedETHforDAI(uint daiAmount) public view returns (uint[] memory) {
-    return uniswapRouter.getAmountsIn(daiAmount, getPathForETHtoTOKEN('DAI'));
-  }
-
-  function getEstimatedETHforUSDC(uint usdcAmount) public view returns (uint[] memory) {
-    return uniswapRouter.getAmountsIn(usdcAmount, getPathForETHtoTOKEN('USDC'));
-  }
-
-  function getEstimatedETHforUNI(uint uniAmount) public view returns (uint[] memory) {
-    return uniswapRouter.getAmountsIn(uniAmount, getPathForETHtoTOKEN('UNI'));
-  }
-
-  function getEstimatedETHforTWBTC(uint twbtcAmount) public view returns (uint[] memory) {
-    return uniswapRouter.getAmountsIn(twbtcAmount, getPathForETHtoTOKEN('TWBTC'));
-  }
-
-  function getPair(address tokenA, address tokenB) private view returns (address) {
-    return uniswapFactory.getPair(tokenA, tokenB);
-  }
-
-  function getRootPair(address destination) private view returns (address) {
-    return uniswapFactory.getPair(uniswapRouter.WETH(), destination);
-  }
-
   function getPathForETHtoTOKEN(string memory token) private view returns (address[] memory) {
     address[] memory path = new address[](2);
     path[0] = uniswapRouter.WETH();
@@ -184,8 +152,8 @@ contract Allocator {
     return token.balanceOf(address(this));
   }
 
-  function getOracleAssetPrice(string memory symbol) public returns (int) {
-    return oracle.getAssetLatestRoundData(symbol);
+  function getUnderlyingPrice(string memory symbol) public returns (int) {
+    return oracle.getUnderlyingPrice(symbol);
   }
 
   function _withdraw(string memory symbol) private {
@@ -202,6 +170,10 @@ contract Allocator {
     );
 
     token.transfer(owner, balanceOfToken);
+  }
+  
+  function getBlockNumber() public view returns (uint) {
+    return block.number;
   }
 
   // important to receive ETH

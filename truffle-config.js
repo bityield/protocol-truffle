@@ -24,34 +24,34 @@
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
+// const Web3 = require("web3");
+// const web3 = new Web3();
+
+// Load environment configuration from .env
 require('dotenv').config();
 
-const utils = require('web3-utils');
-const Web3 = require("web3");
-const web3 = new Web3();
 const WalletProvider = require("truffle-wallet-provider");
 const Wallet = require('ethereumjs-wallet');
-
 const assert = require('assert');
+const utils = require('web3-utils');
 
 // var mainNetPrivateKey = new Buffer(process.env["MAINNET_PRIVATE_KEY"], "hex")
 // var mainNetWallet = Wallet.default.fromPrivateKey(mainNetPrivateKey);
 // var mainNetProvider = new WalletProvider(mainNetWallet, "https://mainnet.infura.io/");
 
-var kovanPrivateKey = new Buffer(process.env["KOVAN_PRIVATE_KEY"], "hex")
-var kovanWallet = Wallet.fromPrivateKey(kovanPrivateKey);
-var kovanProvider = new WalletProvider(kovanWallet, process.env["INFURA_KOVAN_API_ENDPOINT"]);
+const kovanPrivateKey = new Buffer(process.env["KOVAN_PRIVATE_KEY"], "hex")
+const kovanWallet = Wallet.fromPrivateKey(kovanPrivateKey);
+const kovanProvider = new WalletProvider(kovanWallet, process.env["INFURA_KOVAN_API_ENDPOINT"]);
 
 assert(process.env.KOVAN_PRIVATE_KEY, 'missing KOVAN_PRIVATE_KEY in .env file');
 assert(process.env.INFURA_KOVAN_API_ENDPOINT, 'missing INFURA_KOVAN_API_ENDPOINT in .env file');
 
-var ropstenPrivateKey = new Buffer(process.env["ROPSTEN_PRIVATE_KEY"], "hex")
-var ropstenWallet = Wallet.fromPrivateKey(ropstenPrivateKey);
-var ropstenProvider = new WalletProvider(ropstenWallet, process.env["INFURA_ROPSTEN_API_ENDPOINT"]);
+const ropstenPrivateKey = new Buffer(process.env["ROPSTEN_PRIVATE_KEY"], "hex")
+const ropstenWallet = Wallet.fromPrivateKey(ropstenPrivateKey);
+const ropstenProvider = new WalletProvider(ropstenWallet, process.env["INFURA_ROPSTEN_API_ENDPOINT"]);
 
 assert(process.env.ROPSTEN_PRIVATE_KEY, 'missing ROPSTEN_PRIVATE_KEY in .env file');
 assert(process.env.INFURA_ROPSTEN_API_ENDPOINT, 'missing INFURA_ROPSTEN_API_ENDPOINT in .env file');
-
 
 module.exports = {
   plugins: [

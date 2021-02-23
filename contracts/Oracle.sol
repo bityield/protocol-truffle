@@ -1,11 +1,10 @@
-// SPDX-License-Identifier: BitYield
+// SPDX-License-Identifier: Bityield
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
 import '@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol';
 
 contract Oracle {
-	// Chainlink price feeds: https://docs.chain.link/docs/ethereum-addresses
 	mapping (string => address) private priceFeeds;
 	mapping (string => AggregatorV3Interface) private priceAggregators;
   
@@ -19,7 +18,7 @@ contract Oracle {
 		supportedAssets['ETH'] = true;
 	}
   
-	function getAssetLatestRoundData(string memory symbol) 
+	function getUnderlyingPrice(string memory symbol) 
 		public
 		view 
 		returns (int) 
