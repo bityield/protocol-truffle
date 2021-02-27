@@ -24,8 +24,7 @@
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
-// const Web3 = require("web3");
-// const web3 = new Web3();
+
 
 // Load environment configuration from .env
 require('dotenv').config();
@@ -34,6 +33,8 @@ const WalletProvider = require("truffle-wallet-provider");
 const Wallet = require('ethereumjs-wallet');
 const assert = require('assert');
 const utils = require('web3-utils');
+const Web3 = require("web3");
+const web3 = new Web3();
 
 // var mainNetPrivateKey = new Buffer(process.env["MAINNET_PRIVATE_KEY"], "hex")
 // var mainNetWallet = Wallet.default.fromPrivateKey(mainNetPrivateKey);
@@ -70,7 +71,7 @@ module.exports = {
       provider: () => {
         return new WalletProvider(ropstenWallet, process.env["INFURA_ROPSTEN_API_ENDPOINT"]);
       },
-      gas: 4600000,
+      gas: 4700000,
       gasPrice: utils.toWei("20", "gwei"),
       network_id: 3,
     },
@@ -78,8 +79,8 @@ module.exports = {
       provider: () => {
         return new WalletProvider(kovanWallet, process.env["INFURA_KOVAN_API_ENDPOINT"]);
       },
-      gas: 4600000,
-      gasPrice: utils.toWei("20", "gwei"),
+      gas: 4712388,
+      gasPrice: utils.toWei("50", "gwei"),
       network_id: 42
     }
   },

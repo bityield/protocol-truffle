@@ -1,11 +1,23 @@
-NETWORK?=local
+NETWORK?=development
 IMAGE=bityield-protocol:$(NETWORK)
+
+.PHONY: clean compile test
+
+# Shortcuts 
+c: compile
+t: test
 
 abi:
 	@python scripts/abi.py
 
-compile:
+clean:
+	@rm -rf ./build/
+
+compile: clean
 	@truffle compile
+
+deployment:
+	@npm run exec scripts/deployment.js -- --network kovan
 
 console:
 	@echo "ex: 'const i = await {Contract}.deployed()'"
@@ -29,3 +41,6 @@ local:
 	@truffle compile
 	@truffle migrate
 	@truffle deploy
+
+test:
+	@truffle test --network development
