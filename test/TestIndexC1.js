@@ -77,8 +77,22 @@ contract('IndexC1', (accounts) => {
 			const allocation = Object.assign({}, r);
 			
 		  	expect(r.investor).to.equal(owner);
-			expect(r.amount.toString()).to.equal(value.toString());
+			expect(r.etherAmount.toString()).to.equal(value.toString());
 			expect(r.currentBlock).to.not.be.null;
+			expect(r.completed).to.equal(true);
+			
+			// Call the getter method to check the allocationBalances
+			return contract.getAllocationBalances(owner);
+		  })
+		  .then(r => {
+		  	let totals = 0;
+			  
+			for (i = 0; i < r.length; i++) {
+				let tokenValue = new BigNumber(Object.assign({}, r[i]).etherAmount);
+				totals += tokenValue.toNumber();
+			}
+			
+			expect(totals).to.equal(value.toNumber());
 		  });
 	});
 

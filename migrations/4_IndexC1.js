@@ -20,9 +20,13 @@ const checkAllocationAmounts = (items) => {
 };
 
 module.exports = async(deployer, network, accounts) => {
-	let name;
-	let assets;
-	let allocations;
+	let name = '';
+	let assets = [
+		"0x0000000000000000000000000000000000000000"
+	];
+	let allocations= [
+		"1000000000000000000"
+	];
 	
 	switch(network) {
 		case "development":
@@ -52,13 +56,13 @@ module.exports = async(deployer, network, accounts) => {
 			name = "High Yield GP1";
 			
 			assets = [
-				"0xDe6bD79980505DC1FeE66A2BbC3881B17EC17818",
-				"0x482dC9bB08111CB875109B075A40881E48aE02Cd",
-				"0x61460874a7196d6a22D1eE4922473664b3E95270",
-				"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
-				"0x3BDb41FcA3956A72cd841696bD59ca860F3f0513",
-				"0xe3C4f43E690Ed08C4887B284c6ee291059D38105",
-				"0xd0A1E359811322d97991E03f863a0C30C2cF029C",
+				"0x3949d09628eA7a714Ea3C34cA8A520EdACf3825D", // xWETH
+				"0xe39e6637395AC1d0d01c12e846E43fbDD01249fB", // xWBTC
+				"0x339A8c5Fd0D82CbeFA8fBfb4333Cb5540177F672", // xUNI
+				"0xc102eF924Ea10E6cD8D2AA775b5Cd0dAb01CDB47", // xCOMP
+				"0x1207e7D4e82Bd98c18BA79bA80160F0816420E4d", // xDAI
+				"0x91f61442E3A714782E8931Da0fefe620A30b2D21", // xUSDC
+				"0x2e3443a910DC27891365994f8D50bcad04B2F768", // xBAT
 			];
 			
 			allocations = [
@@ -73,7 +77,7 @@ module.exports = async(deployer, network, accounts) => {
 			
 			break;
 		default:
-			throw 'cannot use a [default] case on IndexC1 deployment';
+			console.log('Deploying to a none cased network:', network);
 	}
 	
 	// Check totals before actually having the contracts constructor throw

@@ -72,7 +72,7 @@ module.exports = {
         return new WalletProvider(ropstenWallet, process.env["INFURA_ROPSTEN_API_ENDPOINT"]);
       },
       gas: 4700000,
-      gasPrice: utils.toWei("20", "gwei"),
+      gasPrice: utils.toWei("50", "gwei"),
       network_id: 3,
     },
     kovan: {

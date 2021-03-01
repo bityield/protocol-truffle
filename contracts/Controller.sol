@@ -2,4 +2,8 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-contract Controller { }
+import '@openzeppelin/contracts/access/Ownable.sol';
+
+contract Controller is Ownable { 
+	
+}

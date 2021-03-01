@@ -24,7 +24,7 @@ console:
 	@echo "ex: 'const r = await i.getVersion()'"
 	@npx truffle console --network ${NETWORK}
 
-deploy:
+deploy: clean
 	@echo "Deploying -> [${NETWORK}]"
 	@npx truffle compile --network ${NETWORK}
 	@npx truffle migrate --network ${NETWORK}
