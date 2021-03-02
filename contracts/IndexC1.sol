@@ -71,7 +71,6 @@ contract IndexC1 is Ownable {
   
   event ExitMarket(
     address indexed from_,
-    uint256 amount_,
     uint currentBlock_
   );
 
@@ -118,14 +117,14 @@ contract IndexC1 is Ownable {
       uint256 tokenEtherAmount = (msg.value * assetLimits[tokenAddress]) / 1000000000000000000;
       
       // Call UniswapRouter for the swap and return the amounts out
-      // uint[] memory tokenAmounts = uniswapRouter.swapExactETHForTokens{ 
-      //   value: tokenAmount 
-      // }(0, getPathForETHtoTOKEN(assetAddresses[i]), address(this), (block.timestamp + 25));
+      // uint[] memory tokenAmountsOut = uniswapRouter.swapExactETHForTokens{ 
+      //   value: tokenEtherAmount 
+      // }(0, getPathForETHtoTOKEN(tokenAddress), address(this), (block.timestamp + 25));
 
       // For testing purposes until we pass in Uniswap router interface
       uint[] memory tokenAmountsOut = new uint[](2);
-      tokenAmountsOut[0] = 19472849;
-      tokenAmountsOut[1] = 10000000;
+      tokenAmountsOut[0] = uint(keccak256("wowMe"));
+      tokenAmountsOut[1] = uint(keccak256("wowYo"));
       
       // Create the object for storing the allocation at the token level
       allocationBalance memory allocationBalanceInstance = allocationBalance(
@@ -159,21 +158,35 @@ contract IndexC1 is Ownable {
   }
   
   function exitMarket(uint ethAmount) public {
-    // Check that the amount has in fact been accounted for
-    require(ethAmount >= allocations[msg.sender].etherAmount,
-      "The amount trying to be withdrawn is less than is available for this investor"
+    require(allocations[msg.sender].investor == msg.sender,
+      "The msg.sender must be in the allocations ledger"
     );
     
+    require(ethAmount <= allocations[msg.sender].etherAmount,
+      "The amount trying to be withdrawn is less than is available for this investor"
+    );
+
+    // Loop through the index/contracts tokens and determine what is able to be withdrawn
     for (uint i = 0; i < allocationBalances[msg.sender].length; i++) {
-      IERC20 t = IERC20(assetAddresses[i]);
-      uint256 balanceOfToken = t.balanceOf(address(this));
+      IERC20 token = IERC20(allocationBalances[msg.sender][i].token);
+      uint256 balanceOfToken = token.balanceOf(address(this));
       
       require(balanceOfToken >= 0,
         "Token balance must be greater than 0"
       );
+      
+      require(allocationBalances[msg.sender][i].tokenAmounts[0] <= balanceOfToken,
+        "Invested amount is cannot be greater than contract token balanceOfToken"
+      );
   
-      t.transfer(owner(), balanceOfToken);
+      token.transfer(msg.sender, allocationBalances[msg.sender][i].tokenAmounts[0]);
     }
+    
+    // Emit the ExitMarket event
+    emit ExitMarket(
+      msg.sender, 
+      block.number
+    );
   }
   
   // function enterMarketApproval(address spender, uint256 amount) external returns (bool) {
@@ -187,6 +200,11 @@ contract IndexC1 is Ownable {
   // getAmountsInForTOKEN; calls the UniswapRouter for the amountsIn on a given token
   function getAmountsInForTOKEN(uint tokenAmount, address token) public view returns (uint[] memory) {
     return uniswapRouter.getAmountsIn(tokenAmount, getPathForETHtoTOKEN(token));
+  }
+  
+  // getAmountsOutForTOKEN; calls the UniswapRouter for the amountsOut on a given token
+  function getAmountsOutForTOKEN(uint tokenAmount, address token) public view returns (uint[] memory) {
+    return uniswapRouter.getAmountsOut(tokenAmount, getPathForTOKENtoETH(token));
   }
   
   // getPathForETHtoTOKEN; given a token's address, return a path from the WETH UniswapRouter

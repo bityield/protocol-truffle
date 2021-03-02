@@ -5,5 +5,5 @@ pragma experimental ABIEncoderV2;
 import '@openzeppelin/contracts/access/Ownable.sol';
 
 contract Controller is Ownable { 
-	
+	// Ownable(msg.sender);
 }

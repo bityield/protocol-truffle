@@ -8,6 +8,7 @@ const utils = require('ethers').utils;
 const web3 = require('web3');
 
 const IndexC1 = artifacts.require("IndexC1");
+const IndexC1Factory = artifacts.require("IndexC1Factory");
 
 contract('IndexC1', (accounts) => {
 	let instance;
@@ -40,6 +41,18 @@ contract('IndexC1', (accounts) => {
 			instance = contract;
 		});
 	});
+	
+	// it("...should deploy and successfully call createInstance using the method's provided gas estimate", async () => {
+	// 	const contractIndexC1Factory = await IndexC1Factory.new();
+	// 	
+	// 	const gasEstimate = await contractIndexC1Factory.createInstance(name, assets, limits).estimateGas();
+	// 	
+	// 	const tx = await contractFactoryInstance.createInstance({
+	// 		gas: gasEstimate
+	// 	});
+	// 	
+	// 	assert(tx);
+	// });
 	
 	it("#name should return the correct name", async () => {
 		expect(await instance.name.call()).to.equal(name);
@@ -86,7 +99,7 @@ contract('IndexC1', (accounts) => {
 		  })
 		  .then(r => {
 		  	let totals = 0;
-			  
+ 
 			for (i = 0; i < r.length; i++) {
 				let tokenValue = new BigNumber(Object.assign({}, r[i]).etherAmount);
 				totals += tokenValue.toNumber();

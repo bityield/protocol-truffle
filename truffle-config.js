@@ -79,7 +79,7 @@ module.exports = {
       provider: () => {
         return new WalletProvider(kovanWallet, process.env["INFURA_KOVAN_API_ENDPOINT"]);
       },
-      gas: 4712388,
+      gas: 4700000,
       gasPrice: utils.toWei("50", "gwei"),
       network_id: 42
     }

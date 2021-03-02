@@ -16,9 +16,6 @@ clean:
 compile: clean
 	@truffle compile
 
-deployment:
-	@npm run exec scripts/deployment.js -- --network kovan
-
 console:
 	@echo "ex: 'const i = await {Contract}.deployed()'"
 	@echo "ex: 'const r = await i.getVersion()'"
@@ -30,11 +27,17 @@ deploy: clean
 	@npx truffle migrate --network ${NETWORK}
 	@npx truffle deploy --network ${NETWORK}
 
+deployment:
+	@npm run exec scripts/deployment.js -- --network kovan
+
 docker-build:
 	docker build --squash -t $(IMAGE) -f Dockerfile .
 
 docker-dist:
 	docker push $(HOST)/$(IMAGE)
+
+gas:
+	@npm run exec scripts/estimator.js -- --network ${NETWORK}
 
 local:
 	@echo "Deploying -> [local]"
