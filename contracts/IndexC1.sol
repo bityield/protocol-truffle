@@ -117,14 +117,14 @@ contract IndexC1 is Ownable {
       uint256 tokenEtherAmount = (msg.value * assetLimits[tokenAddress]) / 1000000000000000000;
       
       // Call UniswapRouter for the swap and return the amounts out
-      // uint[] memory tokenAmountsOut = uniswapRouter.swapExactETHForTokens{ 
-      //   value: tokenEtherAmount 
-      // }(0, getPathForETHtoTOKEN(tokenAddress), address(this), (block.timestamp + 25));
+      uint[] memory tokenAmountsOut = uniswapRouter.swapExactETHForTokens{ 
+        value: tokenEtherAmount 
+      }(0, getPathForETHtoTOKEN(tokenAddress), address(this), (block.timestamp + 25));
 
       // For testing purposes until we pass in Uniswap router interface
-      uint[] memory tokenAmountsOut = new uint[](2);
-      tokenAmountsOut[0] = uint(keccak256("wowMe"));
-      tokenAmountsOut[1] = uint(keccak256("wowYo"));
+      // uint[] memory tokenAmountsOut = new uint[](2);
+      // tokenAmountsOut[0] = uint(keccak256("wowMe"));
+      // tokenAmountsOut[1] = uint(keccak256("wowYo"));
       
       // Create the object for storing the allocation at the token level
       allocationBalance memory allocationBalanceInstance = allocationBalance(
