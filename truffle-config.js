@@ -57,7 +57,7 @@ assert(process.env.INFURA_ROPSTEN_API_ENDPOINT, 'missing INFURA_ROPSTEN_API_ENDP
 module.exports = {
   plugins: [
     'truffle-contract-size',
-    'truffle-plugin-verify'
+    'truffle-plugin-verify',
   ],
   api_keys: {
     etherscan: process.env["ETHERSCAN_API_KEY"]
@@ -85,7 +85,7 @@ module.exports = {
       gasPrice: utils.toWei("150", "gwei"),
       network_id: 42,
       skipDryRun: true
-    }
+    },
   },
   compilers: {
     solc: {
@@ -95,7 +95,19 @@ module.exports = {
       settings: {
         optimizer: {
           enabled: true,
-          runs: 200
+          runs: 200,
+        },
+        "outputSelection": {
+          "*": {
+            "*": [
+              "abi",
+              "ast",
+              "evm.bytecode.object",
+              "evm.bytecode.sourceMap",
+              "evm.deployedBytecode.object",
+              "evm.deployedBytecode.sourceMap"
+            ]
+          },
         }
       },
     }

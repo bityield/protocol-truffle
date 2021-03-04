@@ -45,18 +45,20 @@ contract IndexC1 is Ownable {
   struct allocationBalance {
     address token;
     uint256 etherAmount;
-    uint256 amountOut;
     uint256 amountIn;
+    uint256 amountOut;
+    // MarketAction action;
   }
   
   // name; is the name of the IndexFund
   string public name;
   
-  IUniswapV2Router02 private uniswapRouter;
-  IUniswapV2Factory  private uniswapFactory;
-
+  uint256 internal constant ETHER_BASE = 1000000000000000000;
   address internal constant UNISWAP_ROUTER_ADDRESS = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
   address internal constant UNISWAP_FACTORY_ADDRESS = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
+  
+  IUniswapV2Router02 private uniswapRouter;
+  IUniswapV2Factory  private uniswapFactory;
   
   /* ============ Events ================= */
   event EnterMarket(address indexed from_, uint256 amountSent_, uint256 amountDeposited_, uint currentBlock_);
@@ -92,7 +94,8 @@ contract IndexC1 is Ownable {
   
   // enterMarket; is the main entry point to this contract. It takes msg.value and splits
   // to the allocation ceilings in wei. Any funds not used are returned to the sender
-  function enterMarket() public payable {
+  function enterMarket() public payable {    
+    // Create a new investor allocationInstance
     allocation memory allocationInstance = allocation(msg.sender, msg.value, block.number, false);
 
     // Keep track of the ether accounted for so if failure, the refunded amount is proper
@@ -102,13 +105,15 @@ contract IndexC1 is Ownable {
       address tokenAddress = assetAddresses[i];
       
       // Calculate the allocation amount for the either spent on this token
-      uint256 tokenEtherAmount = (msg.value * assetLimits[tokenAddress]) / 1000000000000000000;
+      uint256 tokenEtherAmount = (msg.value * assetLimits[tokenAddress]) / ETHER_BASE;
     
       // LIVE -----------------------------------------------------------------------
-      try uniswapRouter.swapExactETHForTokens{ value: tokenEtherAmount }(0, getPathForETHtoTOKEN(tokenAddress), address(this), (block.timestamp + 120)) returns (uint[] memory tokenAmounts) {
+      try uniswapRouter.swapExactETHForTokens{ 
+        value: tokenEtherAmount 
+      }(0, getPathForETHtoTOKEN(tokenAddress), address(this), (block.timestamp + 120)) returns (uint[] memory tokenAmounts) {
           allocationBalances[msg.sender].push(allocationBalance(
              tokenAddress, 
-             tokenEtherAmount, 
+             tokenEtherAmount,
              tokenAmounts[0],
              tokenAmounts[1]
           ));
@@ -126,11 +131,12 @@ contract IndexC1 is Ownable {
       // allocationBalances[msg.sender].push(allocationBalance(
       //   tokenAddress, 
       //   tokenEtherAmount, 
-      //   uint(keccak256("wowMe")),
-      //   uint(keccak256("wowYo"))
+      //   uint(keccak256("in")),
+      //   uint(keccak256("out")),
+      //   MarketAction.Deposit
       // ));
   
-      // Increment the totalEther invested
+      // Increment the totalEther deposited
       totalEther += tokenEtherAmount;
     }
   
@@ -157,79 +163,44 @@ contract IndexC1 is Ownable {
     allocations[msg.sender] = allocationInstance;
   }
   
-//   function exitMarket(uint ethAmount) public {
+//   function exitMarket() public {
 //     require(allocations[msg.sender].investor == msg.sender,
 //       "sender must be in allocations"
 //     );
 //     
-//     require(ethAmount <= allocations[msg.sender].etherAmount,
-//       "amount is less than allocation"
-//     );
-// 
-//     // Loop through the index/contracts tokens and determine what is able to be withdrawn
+//     // Keep track of the ether accounted for so if failure, the refunded amount is proper
+//     uint256 totalEther = 0;
+//     
 //     for (uint i = 0; i < allocationBalances[msg.sender].length; i++) {
-//       IERC20 token = IERC20(allocationBalances[msg.sender][i].token);
-//       uint256 balanceOfToken = token.balanceOf(address(this));
-//       
-//       require(balanceOfToken >= 0,
-//         "token balance cannot be 0"
-//       );
-//       
-//       require(allocationBalances[msg.sender][i].tokenAmounts[0] <= balanceOfToken,
-//         "amount cannot be > token"
-//       );
-//   
-//       token.transfer(msg.sender, allocationBalances[msg.sender][i].tokenAmounts[0]);
+//       address tokenAddress = assetAddresses[i];
+// 
+//       try uniswapRouter.swapExactTokensForETH(
+//         allocationBalances[msg.sender][i].amountIn, 
+//         0, 
+//         getPathForTOKENtoETH(allocationBalances[msg.sender][i].token), 
+//         msg.sender, 
+//         (block.timestamp + 120)
+//       ) returns (uint[] memory tokenAmounts) {
+//           //// allocationBalance.....
+//           
+//           // Increment the totalEther withdrawn
+//           totalEther += tokenAmounts[0];
+//       } catch Error(string memory _err) {
+//         emit SwapFailureString(tokenAddress, _err);
+//         continue;
+//       } catch (bytes memory _err) {
+//         emit SwapFailureBytes(tokenAddress, _err);
+//         continue;
+//       }
 //     }
 //     
 //     // Emit the ExitMarket event
 //     emit ExitMarket(
-//       msg.sender, 
+//       msg.sender,
+//       totalEther,
 //       block.number
 //     );
 //   }
-  
-  function exitMarket() public {
-    require(msg.sender == owner(),
-      "owner must be msg.sender"
-    );
-    
-    for (uint i = 0; i < assetAddresses.length; i++) {
-      _withdraw(assetAddresses[i]); 
-    }
-    
-    emit ExitMarket(
-      msg.sender,
-      0,
-      block.number
-    );
-  }
-  
-  function _withdraw(address token) private {
-    require(msg.sender == owner(),
-      "owner must be msg.sender"
-    );
-    
-    IERC20 t = IERC20(token);
-    
-    uint256 balanceOfToken = t.balanceOf(address(this));
-    
-    require(balanceOfToken >= 0,
-      "Token balance must be > 0"
-    );
-
-    t.transfer(msg.sender, balanceOfToken);
-  }
-
-  // // getAmountsInForTOKEN; calls the UniswapRouter for the amountsIn on a given token
-  // function getAmountsInForTOKEN(uint tokenAmount, address token) external view returns (uint[] memory) {
-  //   return uniswapRouter.getAmountsIn(tokenAmount, getPathForETHtoTOKEN(token));
-  // }
-  // 
-  // // getAmountsOutForTOKEN; calls the UniswapRouter for the amountsOut on a given token
-  // function getAmountsOutForTOKEN(uint tokenAmount, address token) external view returns (uint[] memory) {
-  //   return uniswapRouter.getAmountsOut(tokenAmount, getPathForTOKENtoETH(token));
-  // }
   
   // getPathForETHtoTOKEN; given a token's address, return a path from the WETH UniswapRouter
   function getPathForETHtoTOKEN(address token) private view returns (address[] memory) {
