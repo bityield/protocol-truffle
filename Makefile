@@ -1,10 +1,12 @@
 NETWORK?=development
 IMAGE=bityield-protocol:$(NETWORK)
 
-.PHONY: clean compile test
+.PHONY: abi clean compile console deploy docker-build docker-dist gas local size test
 
 # Shortcuts 
 c: compile
+g: gas
+s: size
 t: test
 
 abi:
@@ -26,9 +28,7 @@ deploy: clean
 	@npx truffle compile --network ${NETWORK}
 	@npx truffle migrate --network ${NETWORK}
 	@npx truffle deploy --network ${NETWORK}
-
-deployment:
-	@npm run exec scripts/deployment.js -- --network kovan
+	@npx truffle run verify IndexC1 --network ${NETWORK}
 
 docker-build:
 	docker build --squash -t $(IMAGE) -f Dockerfile .
@@ -39,11 +39,14 @@ docker-dist:
 gas:
 	@npm run exec scripts/estimator.js -- --network ${NETWORK}
 
-local:
+local: clean
 	@echo "Deploying -> [local]"
 	@truffle compile
-	@truffle migrate
+	@truffle migrate --reset
 	@truffle deploy
+
+size: compile
+	@truffle run contract-size
 
 test:
 	@truffle test --network development

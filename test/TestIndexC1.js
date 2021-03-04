@@ -1,5 +1,6 @@
 const { expect } = require('chai');
 const { BN, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
+const RevertTraceSubprovider = require('@0x/sol-trace').RevertTraceSubprovider;
 
 const BigNumber = require('bignumber.js');
 const pry = require('pryjs');
@@ -8,7 +9,6 @@ const utils = require('ethers').utils;
 const web3 = require('web3');
 
 const IndexC1 = artifacts.require("IndexC1");
-const IndexC1Factory = artifacts.require("IndexC1Factory");
 
 contract('IndexC1', (accounts) => {
 	let instance;
@@ -42,18 +42,6 @@ contract('IndexC1', (accounts) => {
 		});
 	});
 	
-	// it("...should deploy and successfully call createInstance using the method's provided gas estimate", async () => {
-	// 	const contractIndexC1Factory = await IndexC1Factory.new();
-	// 	
-	// 	const gasEstimate = await contractIndexC1Factory.createInstance(name, assets, limits).estimateGas();
-	// 	
-	// 	const tx = await contractFactoryInstance.createInstance({
-	// 		gas: gasEstimate
-	// 	});
-	// 	
-	// 	assert(tx);
-	// });
-	
 	it("#name should return the correct name", async () => {
 		expect(await instance.name.call()).to.equal(name);
 	});
@@ -80,7 +68,7 @@ contract('IndexC1', (accounts) => {
 			
 			// Ensure that the receipt contains the true value received
 			expect(r.receipt.logs[0].args.from_).to.equal(owner);
-			expect(r.receipt.logs[0].args.amount_.toString()).to.equal(value.toString());
+			expect(r.receipt.logs[0].args.amountSent_.toString()).to.equal(value.toString());
 			expect(r.receipt.logs[0].args.currentBlock_.toString()).to.not.be.null;
 			
 			// Call the getter method to check the allocation has been accounted for
@@ -120,7 +108,7 @@ contract('IndexC1', (accounts) => {
 
 	it("#getLimit should return the allocation limit for the given asset", async () => {
 		for (i = 0; i < assets.length; i++) {
-			const amount  = await instance.getLimit(assets[i]);
+			const amount  = await instance.getAssetLimit(assets[i]);
 			expect(amount.toString()).to.equal(limits[i]);
 		}
 	});

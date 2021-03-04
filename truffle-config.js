@@ -56,6 +56,7 @@ assert(process.env.INFURA_ROPSTEN_API_ENDPOINT, 'missing INFURA_ROPSTEN_API_ENDP
 
 module.exports = {
   plugins: [
+    'truffle-contract-size',
     'truffle-plugin-verify'
   ],
   api_keys: {
@@ -69,19 +70,21 @@ module.exports = {
     },
     ropsten: {
       provider: () => {
-        return new WalletProvider(ropstenWallet, process.env["INFURA_ROPSTEN_API_ENDPOINT"]);
+        return new WalletProvider(ropstenWallet, process.env["ALCHEMY_ROPSTEN_API_ENDPOINT"]);
       },
-      gas: 4700000,
-      gasPrice: utils.toWei("50", "gwei"),
+      gas: 5000000,
+      gasPrice: utils.toWei("150", "gwei"),
       network_id: 3,
+      skipDryRun: true
     },
     kovan: {
       provider: () => {
         return new WalletProvider(kovanWallet, process.env["INFURA_KOVAN_API_ENDPOINT"]);
       },
-      gas: 4700000,
-      gasPrice: utils.toWei("50", "gwei"),
-      network_id: 42
+      gas: 5000000,
+      gasPrice: utils.toWei("150", "gwei"),
+      network_id: 42,
+      skipDryRun: true
     }
   },
   compilers: {
@@ -89,6 +92,16 @@ module.exports = {
       version: "^0.6.8",
       docker: false,
       parser: "solcjs",
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 200
+        }
+      },
     }
+  },
+  mocha: {
+    enableTimeouts: false,
+    useColors: true
   }
 };

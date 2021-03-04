@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 
 const BigNumber = require('bignumber.js');
+const Controller = artifacts.require("Controller");
 const IndexC1 = artifacts.require("IndexC1");
 
 const checkAssetLengths = (a, b) => {
@@ -16,7 +17,8 @@ const checkAllocationAmounts = (items) => {
 		totals += value.toNumber();
 	}
 	
-	expect(totals).to.equal(1000000000000000000);
+	// expect(totals).to.equal(1000000000000000000);
+	expect(totals).to.be.at.most(1000000000000000000);
 };
 
 module.exports = async(deployer, network, accounts) => {
@@ -58,14 +60,15 @@ module.exports = async(deployer, network, accounts) => {
 			assets = [
 				"0x3949d09628eA7a714Ea3C34cA8A520EdACf3825D", // xWETH
 				"0xe39e6637395AC1d0d01c12e846E43fbDD01249fB", // xWBTC
-				"0x339A8c5Fd0D82CbeFA8fBfb4333Cb5540177F672", // xUNI
 				"0xc102eF924Ea10E6cD8D2AA775b5Cd0dAb01CDB47", // xCOMP
+				"0x339A8c5Fd0D82CbeFA8fBfb4333Cb5540177F672", // xUNI
 				"0x1207e7D4e82Bd98c18BA79bA80160F0816420E4d", // xDAI
 				"0x91f61442E3A714782E8931Da0fefe620A30b2D21", // xUSDC
 				"0x2e3443a910DC27891365994f8D50bcad04B2F768", // xBAT
+				
 			];
 			
-			allocations = [
+			allocations = [				
 				"300000000000000000",
 				"300000000000000000",
 				"100000000000000000",

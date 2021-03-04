@@ -2,7 +2,7 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-import { AddressArrayUtils } from "./lib/AddressArrayUtils.sol";
+import './lib/AddressArrayUtils.sol';
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
@@ -11,39 +11,33 @@ import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 
-import '@nomiclabs/buidler/console.sol';
-
 contract IndexC1 is Ownable {
   using AddressArrayUtils for address[];
-  
   using SafeMath for uint256;
-    
-  IUniswapV2Router02 private uniswapRouter;
-  IUniswapV2Factory  private uniswapFactory;
   
   /* ============ State Variables ============ */
   
   // assetAddresses; this is an array of the tokens that will be held in this fund 
   // A valid Uniswap pair must be present on the execution network to provide a swap
-  address[] public assetAddresses;
+  address[] internal assetAddresses;
   
   // assetLimits; this maps the asset(a token's address) => to it's funding allocation maximum
   // example: {0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984 => 100000000000000000}
   // 		key -> valid token address
   // 		val -> allocation in wei (uint256)
-  mapping(address => uint256) public assetLimits;
+  mapping(address => uint256) internal assetLimits;
   
   // allocations; the allocation ledger for storing the investment amounts per address
-  mapping(address => allocation) private allocations;
+  mapping(address => allocation) internal allocations;
   
   // allocationBalances; the ledger for the asset token spread for the investor
-  mapping(address => allocationBalance[]) private allocationBalances;
+  mapping(address => allocationBalance[]) internal allocationBalances;
   
   // allocation; The object stored in the allocations mapping. What the investors investment amount looks like
   struct allocation {
     address investor;
     uint256 etherAmount;
-    uint currentBlock;
+    uint256 currentBlock;
     bool completed;
   }
   
@@ -51,28 +45,25 @@ contract IndexC1 is Ownable {
   struct allocationBalance {
     address token;
     uint256 etherAmount;
-    uint[] tokenAmounts;
+    uint256 amountOut;
+    uint256 amountIn;
   }
   
   // name; is the name of the IndexFund
   string public name;
   
-  address internal constant UNISWAP_V1 = 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984;
-  address internal constant UNISWAP_V2 = 0xB0b3B38ef1b32E98f2947e5Ba23ca765158d023B;
+  IUniswapV2Router02 private uniswapRouter;
+  IUniswapV2Factory  private uniswapFactory;
+
   address internal constant UNISWAP_ROUTER_ADDRESS = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
   address internal constant UNISWAP_FACTORY_ADDRESS = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
   
   /* ============ Events ================= */
-  event EnterMarket(
-    address indexed from_, 
-    uint256 amount_,
-    uint currentBlock_
-  );
-  
-  event ExitMarket(
-    address indexed from_,
-    uint currentBlock_
-  );
+  event EnterMarket(address indexed from_, uint256 amountSent_, uint256 amountDeposited_, uint currentBlock_);
+  event ExitMarket(address indexed from_, uint256 amountWithdrawn_, uint currentBlock_);
+  event SwapSuccess(address indexed token_, uint256 amount_, uint256 amountOut_, uint256 amountIn_);
+  event SwapFailureString(address indexed token_, string err_);
+  event SwapFailureBytes(address indexed token_, bytes err_);
 
   /* ============ Constructor ============ */
   constructor(
@@ -82,69 +73,78 @@ contract IndexC1 is Ownable {
   ) public {
     Ownable(msg.sender);
     
-    name = _name;
-    
-    require(_assets.length == _limits.length, "Arrays must be equal");
-    require(_assets.length != 0, "Array must not be empty");
+    require(_assets.length == _limits.length, "asset arrays must be equal");
+    require(_assets.length != 0, "asset array must not be empty");
     
     // Setting the assets and their limits here
     for (uint i = 0; i < _assets.length; i++) {
       address asset = _assets[i];
-      require(assetLimits[asset] == 0, "Asset already added");
+      require(assetLimits[asset] == 0, "asset already added");
       assetLimits[asset] = _limits[i];
     }
 
+    name = _name;
     assetAddresses = _assets;
+
     uniswapRouter  = IUniswapV2Router02(UNISWAP_ROUTER_ADDRESS);
     uniswapFactory = IUniswapV2Factory(UNISWAP_FACTORY_ADDRESS);
   }
   
   // enterMarket; is the main entry point to this contract. It takes msg.value and splits
   // to the allocation ceilings in wei. Any funds not used are returned to the sender
-  function enterMarket() public payable {  
-    // require(allocations[msg.sender] == 0,
-    //   "This product currently only allows one investment per address / investor"
-    // );
-    
-    // Set the investors initial values in their allocation  
+  function enterMarket() public payable {
     allocation memory allocationInstance = allocation(msg.sender, msg.value, block.number, false);
-  
-    // This is where the magic happens on the token swaps
+
+    // Keep track of the ether accounted for so if failure, the refunded amount is proper
+    uint256 totalEther = 0;
+
     for (uint i = 0; i < assetAddresses.length; i++) {
       address tokenAddress = assetAddresses[i];
       
-      // Calculate the allocation amount
+      // Calculate the allocation amount for the either spent on this token
       uint256 tokenEtherAmount = (msg.value * assetLimits[tokenAddress]) / 1000000000000000000;
+    
+      // LIVE -----------------------------------------------------------------------
+      try uniswapRouter.swapExactETHForTokens{ value: tokenEtherAmount }(0, getPathForETHtoTOKEN(tokenAddress), address(this), (block.timestamp + 120)) returns (uint[] memory tokenAmounts) {
+          allocationBalances[msg.sender].push(allocationBalance(
+             tokenAddress, 
+             tokenEtherAmount, 
+             tokenAmounts[0],
+             tokenAmounts[1]
+          ));
+            
+          emit SwapSuccess(tokenAddress, tokenEtherAmount, tokenAmounts[0], tokenAmounts[1]);
+      } catch Error(string memory _err) {
+          emit SwapFailureString(tokenAddress, _err);
+          continue;
+      } catch (bytes memory _err) {
+          emit SwapFailureBytes(tokenAddress, _err);
+          continue;
+      }
       
-      // Call UniswapRouter for the swap and return the amounts out
-      uint[] memory tokenAmountsOut = uniswapRouter.swapExactETHForTokens{ 
-        value: tokenEtherAmount 
-      }(0, getPathForETHtoTOKEN(tokenAddress), address(this), (block.timestamp + 25));
-
-      // For testing purposes until we pass in Uniswap router interface
-      // uint[] memory tokenAmountsOut = new uint[](2);
-      // tokenAmountsOut[0] = uint(keccak256("wowMe"));
-      // tokenAmountsOut[1] = uint(keccak256("wowYo"));
-      
-      // Create the object for storing the allocation at the token level
-      allocationBalance memory allocationBalanceInstance = allocationBalance(
-        tokenAddress, 
-        tokenEtherAmount, 
-        tokenAmountsOut
-      );
-      
-      // Save the token value amount onto the Allocations object of the investor
-      allocationBalances[msg.sender].push(allocationBalanceInstance);
+      // TEST -----------------------------------------------------------------------
+      // allocationBalances[msg.sender].push(allocationBalance(
+      //   tokenAddress, 
+      //   tokenEtherAmount, 
+      //   uint(keccak256("wowMe")),
+      //   uint(keccak256("wowYo"))
+      // ));
+  
+      // Increment the totalEther invested
+      totalEther += tokenEtherAmount;
     }
   
     // Refund any unused Ether
-    (bool success,) = msg.sender.call{ value: address(this).balance }("");
-    require(success, "refund failed");
+    // This needs to only refund the Ether difference from msg.value, not the address
+    // ******************************************************************************
+    (bool success,) = msg.sender.call{ value: (msg.value - totalEther) }("");
+    require(success, "enterMarket; refund failed");
     
     // Emit the EnterMarket event
     emit EnterMarket(
       msg.sender, 
       msg.value,
+      totalEther,
       block.number
     );
     
@@ -154,58 +154,82 @@ contract IndexC1 is Ownable {
     allocationInstance.completed = true;
     
     // // Add the investor allocation object to keep granular details about the trade
-    allocations[msg.sender] = allocationInstance; 
+    allocations[msg.sender] = allocationInstance;
   }
   
-  function exitMarket(uint ethAmount) public {
-    require(allocations[msg.sender].investor == msg.sender,
-      "The msg.sender must be in the allocations ledger"
+//   function exitMarket(uint ethAmount) public {
+//     require(allocations[msg.sender].investor == msg.sender,
+//       "sender must be in allocations"
+//     );
+//     
+//     require(ethAmount <= allocations[msg.sender].etherAmount,
+//       "amount is less than allocation"
+//     );
+// 
+//     // Loop through the index/contracts tokens and determine what is able to be withdrawn
+//     for (uint i = 0; i < allocationBalances[msg.sender].length; i++) {
+//       IERC20 token = IERC20(allocationBalances[msg.sender][i].token);
+//       uint256 balanceOfToken = token.balanceOf(address(this));
+//       
+//       require(balanceOfToken >= 0,
+//         "token balance cannot be 0"
+//       );
+//       
+//       require(allocationBalances[msg.sender][i].tokenAmounts[0] <= balanceOfToken,
+//         "amount cannot be > token"
+//       );
+//   
+//       token.transfer(msg.sender, allocationBalances[msg.sender][i].tokenAmounts[0]);
+//     }
+//     
+//     // Emit the ExitMarket event
+//     emit ExitMarket(
+//       msg.sender, 
+//       block.number
+//     );
+//   }
+  
+  function exitMarket() public {
+    require(msg.sender == owner(),
+      "owner must be msg.sender"
     );
     
-    require(ethAmount <= allocations[msg.sender].etherAmount,
-      "The amount trying to be withdrawn is less than is available for this investor"
-    );
-
-    // Loop through the index/contracts tokens and determine what is able to be withdrawn
-    for (uint i = 0; i < allocationBalances[msg.sender].length; i++) {
-      IERC20 token = IERC20(allocationBalances[msg.sender][i].token);
-      uint256 balanceOfToken = token.balanceOf(address(this));
-      
-      require(balanceOfToken >= 0,
-        "Token balance must be greater than 0"
-      );
-      
-      require(allocationBalances[msg.sender][i].tokenAmounts[0] <= balanceOfToken,
-        "Invested amount is cannot be greater than contract token balanceOfToken"
-      );
-  
-      token.transfer(msg.sender, allocationBalances[msg.sender][i].tokenAmounts[0]);
+    for (uint i = 0; i < assetAddresses.length; i++) {
+      _withdraw(assetAddresses[i]); 
     }
     
-    // Emit the ExitMarket event
     emit ExitMarket(
-      msg.sender, 
+      msg.sender,
+      0,
       block.number
     );
   }
   
-  // function enterMarketApproval(address spender, uint256 amount) external returns (bool) {
-  //   return false;
+  function _withdraw(address token) private {
+    require(msg.sender == owner(),
+      "owner must be msg.sender"
+    );
+    
+    IERC20 t = IERC20(token);
+    
+    uint256 balanceOfToken = t.balanceOf(address(this));
+    
+    require(balanceOfToken >= 0,
+      "Token balance must be > 0"
+    );
+
+    t.transfer(msg.sender, balanceOfToken);
+  }
+
+  // // getAmountsInForTOKEN; calls the UniswapRouter for the amountsIn on a given token
+  // function getAmountsInForTOKEN(uint tokenAmount, address token) external view returns (uint[] memory) {
+  //   return uniswapRouter.getAmountsIn(tokenAmount, getPathForETHtoTOKEN(token));
   // }
   // 
-  // function exitMarketApproval(address spender, uint256 amount) external returns (bool) {
-  //   return false;    
+  // // getAmountsOutForTOKEN; calls the UniswapRouter for the amountsOut on a given token
+  // function getAmountsOutForTOKEN(uint tokenAmount, address token) external view returns (uint[] memory) {
+  //   return uniswapRouter.getAmountsOut(tokenAmount, getPathForTOKENtoETH(token));
   // }
-  
-  // getAmountsInForTOKEN; calls the UniswapRouter for the amountsIn on a given token
-  function getAmountsInForTOKEN(uint tokenAmount, address token) public view returns (uint[] memory) {
-    return uniswapRouter.getAmountsIn(tokenAmount, getPathForETHtoTOKEN(token));
-  }
-  
-  // getAmountsOutForTOKEN; calls the UniswapRouter for the amountsOut on a given token
-  function getAmountsOutForTOKEN(uint tokenAmount, address token) public view returns (uint[] memory) {
-    return uniswapRouter.getAmountsOut(tokenAmount, getPathForTOKENtoETH(token));
-  }
   
   // getPathForETHtoTOKEN; given a token's address, return a path from the WETH UniswapRouter
   function getPathForETHtoTOKEN(address token) private view returns (address[] memory) {
@@ -228,17 +252,35 @@ contract IndexC1 is Ownable {
   /* ============ Getters ============ */
   
   // getAllocation; returns a given investors allocation investment amount as a struct representation
-  function getAllocation(address investor) public view returns(allocation memory) { return allocations[investor]; }
+  function getAllocation(address investor) 
+    public view returns(allocation memory) 
+  { 
+    return allocations[investor]; 
+  }
   
   // getAllocationBalances; returns the investors tokens and balances invested in
-  function getAllocationBalances(address investor) public view returns(allocationBalance[] memory) { return allocationBalances[investor]; }
+  function getAllocationBalances(address investor) 
+    public view returns(allocationBalance[] memory) 
+  { 
+    return allocationBalances[investor]; 
+  }
   
   // getAssets; returns an array of all the Fund's investable assets only
-  function getAssets() public view returns(address[] memory) { return assetAddresses; }
+  function getAssets() 
+    public view returns(address[] memory) 
+  { 
+    return assetAddresses; 
+  }
   
-  // getLimit; for a given asset, returns it's allocation ceiling
-  function getLimit(address token) public view returns(uint256) { return assetLimits[token]; }
+  // getAssetLimit; for a given asset, returns it's allocation ceiling
+  function getAssetLimit(address token) 
+    public view returns(uint256) 
+  { 
+    return assetLimits[token]; 
+  }
   
   // receive; required to accept ether
-  receive() payable external {}
+  receive() 
+    external payable 
+  {}
 }
