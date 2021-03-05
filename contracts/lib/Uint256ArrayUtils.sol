@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: BitYield
 pragma solidity ^0.6.8;
 
 /**

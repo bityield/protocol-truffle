@@ -36,6 +36,11 @@ docker-build:
 docker-dist:
 	docker push $(HOST)/$(IMAGE)
 
+flatten:
+	@./node_modules/truffle-flattener/index.js ./contracts/IndexC1.sol > tmp/IndexC1.sol
+	@pbcopy < tmp/IndexC1.sol
+	@echo "Copied to clibboard..."
+
 gas:
 	@npm run exec scripts/estimator.js -- --network ${NETWORK}
 

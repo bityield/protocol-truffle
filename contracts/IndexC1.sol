@@ -37,7 +37,7 @@ contract IndexC1 is Ownable {
   struct allocation {
     address investor;
     uint256 etherAmount;
-    uint256 currentBlock;
+    uint currentBlock;
     bool completed;
   }
   
@@ -47,13 +47,12 @@ contract IndexC1 is Ownable {
     uint256 etherAmount;
     uint256 amountIn;
     uint256 amountOut;
-    // MarketAction action;
+    uint currentBlock;
   }
   
   // name; is the name of the IndexFund
   string public name;
   
-  uint256 internal constant ETHER_BASE = 1000000000000000000;
   address internal constant UNISWAP_ROUTER_ADDRESS = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
   address internal constant UNISWAP_FACTORY_ADDRESS = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
   
@@ -61,11 +60,35 @@ contract IndexC1 is Ownable {
   IUniswapV2Factory  private uniswapFactory;
   
   /* ============ Events ================= */
-  event EnterMarket(address indexed from_, uint256 amountSent_, uint256 amountDeposited_, uint currentBlock_);
-  event ExitMarket(address indexed from_, uint256 amountWithdrawn_, uint currentBlock_);
-  event SwapSuccess(address indexed token_, uint256 amount_, uint256 amountOut_, uint256 amountIn_);
-  event SwapFailureString(address indexed token_, string err_);
-  event SwapFailureBytes(address indexed token_, bytes err_);
+  event EnterMarket(
+    address indexed from_, 
+    uint256 amountSent_, 
+    uint256 amountDeposited_, 
+    uint currentBlock_
+  );
+  
+  event ExitMarket(
+    address indexed from_, 
+    uint256 amountWithdrawn_, 
+    uint currentBlock_
+  );
+  
+  event SwapSuccess(
+    address indexed token_, 
+    uint256 amount_, 
+    uint256 amountIn_,
+    uint256 amountOut_
+  );
+  
+  event SwapFailureString(
+    address indexed token_, 
+    string err_
+  );
+  
+  event SwapFailureBytes(
+    address indexed token_, 
+    bytes err_
+  );
 
   /* ============ Constructor ============ */
   constructor(
@@ -94,7 +117,9 @@ contract IndexC1 is Ownable {
   
   // enterMarket; is the main entry point to this contract. It takes msg.value and splits
   // to the allocation ceilings in wei. Any funds not used are returned to the sender
-  function enterMarket() public payable {    
+  function enterMarket() public payable {
+    require(owner() == msg.sender, "requires ownership");
+    
     // Create a new investor allocationInstance
     allocation memory allocationInstance = allocation(msg.sender, msg.value, block.number, false);
 
@@ -105,17 +130,18 @@ contract IndexC1 is Ownable {
       address tokenAddress = assetAddresses[i];
       
       // Calculate the allocation amount for the either spent on this token
-      uint256 tokenEtherAmount = (msg.value * assetLimits[tokenAddress]) / ETHER_BASE;
+      uint256 tokenEtherAmount = (msg.value * assetLimits[tokenAddress]) / 1000000000000000000;
     
       // LIVE -----------------------------------------------------------------------
       try uniswapRouter.swapExactETHForTokens{ 
         value: tokenEtherAmount 
       }(0, getPathForETHtoTOKEN(tokenAddress), address(this), (block.timestamp + 120)) returns (uint[] memory tokenAmounts) {
           allocationBalances[msg.sender].push(allocationBalance(
-             tokenAddress, 
+             tokenAddress,
              tokenEtherAmount,
              tokenAmounts[0],
-             tokenAmounts[1]
+             tokenAmounts[1],
+             block.number
           ));
             
           emit SwapSuccess(tokenAddress, tokenEtherAmount, tokenAmounts[0], tokenAmounts[1]);
@@ -132,8 +158,7 @@ contract IndexC1 is Ownable {
       //   tokenAddress, 
       //   tokenEtherAmount, 
       //   uint(keccak256("in")),
-      //   uint(keccak256("out")),
-      //   MarketAction.Deposit
+      //   uint(keccak256("out"))
       // ));
   
       // Increment the totalEther deposited
@@ -162,46 +187,7 @@ contract IndexC1 is Ownable {
     // // Add the investor allocation object to keep granular details about the trade
     allocations[msg.sender] = allocationInstance;
   }
-  
-//   function exitMarket() public {
-//     require(allocations[msg.sender].investor == msg.sender,
-//       "sender must be in allocations"
-//     );
-//     
-//     // Keep track of the ether accounted for so if failure, the refunded amount is proper
-//     uint256 totalEther = 0;
-//     
-//     for (uint i = 0; i < allocationBalances[msg.sender].length; i++) {
-//       address tokenAddress = assetAddresses[i];
-// 
-//       try uniswapRouter.swapExactTokensForETH(
-//         allocationBalances[msg.sender][i].amountIn, 
-//         0, 
-//         getPathForTOKENtoETH(allocationBalances[msg.sender][i].token), 
-//         msg.sender, 
-//         (block.timestamp + 120)
-//       ) returns (uint[] memory tokenAmounts) {
-//           //// allocationBalance.....
-//           
-//           // Increment the totalEther withdrawn
-//           totalEther += tokenAmounts[0];
-//       } catch Error(string memory _err) {
-//         emit SwapFailureString(tokenAddress, _err);
-//         continue;
-//       } catch (bytes memory _err) {
-//         emit SwapFailureBytes(tokenAddress, _err);
-//         continue;
-//       }
-//     }
-//     
-//     // Emit the ExitMarket event
-//     emit ExitMarket(
-//       msg.sender,
-//       totalEther,
-//       block.number
-//     );
-//   }
-  
+
   // getPathForETHtoTOKEN; given a token's address, return a path from the WETH UniswapRouter
   function getPathForETHtoTOKEN(address token) private view returns (address[] memory) {
     address[] memory path = new address[](2);

@@ -58,6 +58,7 @@ module.exports = {
   plugins: [
     'truffle-contract-size',
     'truffle-plugin-verify',
+    // 'verify-on-etherscan',
   ],
   api_keys: {
     etherscan: process.env["ETHERSCAN_API_KEY"]
@@ -66,7 +67,8 @@ module.exports = {
     development: {
       host: 'localhost',
       port: 7545,
-      network_id: '5777'
+      network_id: '5777',
+      skipDryRun: true
     },
     ropsten: {
       provider: () => {

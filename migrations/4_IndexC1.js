@@ -1,8 +1,10 @@
 const { expect } = require('chai');
 
 const BigNumber = require('bignumber.js');
+
 const Controller = artifacts.require("Controller");
 const IndexC1 = artifacts.require("IndexC1");
+// const AddressArrayUtils = artifacts.require("AddressArrayUtils");
 
 const checkAssetLengths = (a, b) => {
 	expect(a.length).to.equal(b.length);
