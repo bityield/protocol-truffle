@@ -200,6 +200,7 @@ contract IndexC1 is Ownable {
   function exitMarket() public {
     // Keep track of the ether accounted for so if failure, the refunded amount is proper
     uint256 totalEther = 0;
+    uint256 totalCoins = 0;
     
     for (uint i = 0; i < allocationBalances[msg.sender].length; i++) {
       address tokenAddress = assetAddresses[i];
@@ -209,7 +210,7 @@ contract IndexC1 is Ownable {
       uint amountInExt = amountInOrg.div(ETHER_BASE);
       
       address[] memory path = getPathForTOKENtoETH(tokenAddress);
-      uint[] memory returnedAmounts = getAmountOut(path, amountInOrg);
+      uint[] memory returnedAmounts = uniswapRouter.getAmountsOut(amountInOrg, path);
       
       IERC20 token = IERC20(tokenAddress);
       require(token.approve(UNISWAP_ROUTER_ADDRESS, amountInOrg),
@@ -223,9 +224,10 @@ contract IndexC1 is Ownable {
         returnedAmounts[1],
         path, 
         msg.sender, 
-        block.timestamp.add(150)
-      ) returns (uint[] memory tokenAmounts) {        
-        totalEther = totalEther.add(tokenAmounts[0]);
+        block.timestamp.add(100)
+      ) returns (uint[] memory tokenAmounts) {
+        totalCoins = totalCoins.add(tokenAmounts[0]); 
+        totalEther = totalEther.add(tokenAmounts[1]);
         
         emit SwapSuccess(tokenAddress, 0, tokenAmounts[0], tokenAmounts[1]);
       } catch Error(string memory _err) {
@@ -240,7 +242,7 @@ contract IndexC1 is Ownable {
     // Emit the ExitMarket event
     emit ExitMarket(
       msg.sender,
-      totalEther,
+      totalCoins,
       totalEther,
       block.number
     );
@@ -256,17 +258,6 @@ contract IndexC1 is Ownable {
       uint256 balanceOfToken = t.balanceOf(address(this));
       t.transfer(newContract, balanceOfToken);
     }
-  }
-  
-  // function swapExactTokensToEth(address[] memory path, uint amountIn, address _employeeAddresss)internal  {
-  //   uint[] memory returnedAmount = getAmountOut(path, amountIn);
-  //   ERC20 erc20 = ERC20(path[0]);
-  //   erc20.approve(uniswapRouterAddress,amountIn);
-  //   uniswap.swapExactTokensForETH(returnedAmount[0],returnedAmount[1],path,_employeeAddresss, now + 12000);
-  // }
-  
-  function getAmountOut(address[] memory path, uint amountInEth) internal view returns(uint[] memory) {
-    return uniswapRouter.getAmountsOut(amountInEth, path);
   }
 
   // getPathForETHtoTOKEN; given a token's address, return a path from the WETH UniswapRouter
