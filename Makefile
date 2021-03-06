@@ -55,3 +55,6 @@ size: compile
 
 test:
 	@truffle test --network development
+
+verify:
+	@npx truffle run verify IndexC1 --network ${NETWORK}

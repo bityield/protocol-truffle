@@ -68,7 +68,7 @@ contract('IndexC1', (accounts) => {
 			
 			// Ensure that the receipt contains the true value received
 			expect(r.receipt.logs[0].args.from_).to.equal(owner);
-			expect(r.receipt.logs[0].args.amountSent_.toString()).to.equal(value.toString());
+			expect(r.receipt.logs[0].args.amountIn_.toString()).to.equal(value.toString());
 			expect(r.receipt.logs[0].args.currentBlock_.toString()).to.not.be.null;
 			
 			// Call the getter method to check the allocation has been accounted for
@@ -80,7 +80,6 @@ contract('IndexC1', (accounts) => {
 		  	expect(r.investor).to.equal(owner);
 			expect(r.etherAmount.toString()).to.equal(value.toString());
 			expect(r.currentBlock).to.not.be.null;
-			expect(r.completed).to.equal(true);
 			
 			// Call the getter method to check the allocationBalances
 			return contract.getAllocationBalances(owner);
