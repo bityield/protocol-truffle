@@ -71,17 +71,7 @@ contract('IndexC1', (accounts) => {
 			expect(r.receipt.logs[0].args.amountIn_.toString()).to.equal(value.toString());
 			expect(r.receipt.logs[0].args.currentBlock_.toString()).to.not.be.null;
 			
-			// Call the getter method to check the allocation has been accounted for
-			return contract.getAllocation(owner);
-		  })
-		  .then(r => {
-			const allocation = Object.assign({}, r);
-			
-		  	expect(r.investor).to.equal(owner);
-			expect(r.etherAmount.toString()).to.equal(value.toString());
-			expect(r.currentBlock).to.not.be.null;
-			
-			// Call the getter method to check the allocationBalances
+			// Call the getter method to check the allocationBalances has been accounted
 			return contract.getAllocationBalances(owner);
 		  })
 		  .then(r => {

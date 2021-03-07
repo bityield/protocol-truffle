@@ -53,7 +53,7 @@ local: clean
 size: compile
 	@truffle run contract-size
 
-test:
+test: compile
 	@truffle test --network development
 
 verify:
