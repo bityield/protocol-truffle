@@ -10,6 +10,14 @@ const web3 = require('web3');
 
 const IndexC1 = artifacts.require("IndexC1");
 
+const checkBalanceAmount = (result, limit) => {
+	const balanceEthAmount = new BigNumber(Object.assign({}, result).ethAmount);
+	const balanceTokAmount = new BigNumber(Object.assign({}, result).tokAmount);
+
+	expect(balanceEthAmount.toString()).to.equal(limit);
+	expect(balanceTokAmount.toNumber()).to.equal(12434562745188401);
+};
+
 contract('IndexC1', (accounts) => {
 	let instance;
 	
@@ -68,21 +76,43 @@ contract('IndexC1', (accounts) => {
 			
 			// Ensure that the receipt contains the true value received
 			expect(r.receipt.logs[0].args.from_).to.equal(owner);
-			expect(r.receipt.logs[0].args.amountIn_.toString()).to.equal(value.toString());
+			expect(r.receipt.logs[0].args.amountDeposited_.toString()).to.equal(value.toString());
 			expect(r.receipt.logs[0].args.currentBlock_.toString()).to.not.be.null;
-			
-			// Call the getter method to check the allocationBalances has been accounted
-			return contract.getAllocationBalances(owner);
+		
+			return contract.getInvestorBalanceAmountsByToken(owner, assets[0]);
 		  })
 		  .then(r => {
-		  	let totals = 0;
- 
-			for (i = 0; i < r.length; i++) {
-				let tokenValue = new BigNumber(Object.assign({}, r[i]).etherAmount);
-				totals += tokenValue.toNumber();
-			}
+		  	checkBalanceAmount(r, limits[0]);
 			
-			expect(totals).to.equal(value.toNumber());
+			return contract.getInvestorBalanceAmountsByToken(owner, assets[1]);
+		  })
+		  .then(r => {			
+			checkBalanceAmount(r, limits[1]);
+			
+			return contract.getInvestorBalanceAmountsByToken(owner, assets[2]);
+		  })
+		  .then(r => {			
+			checkBalanceAmount(r, limits[2]);
+			
+			return contract.getInvestorBalanceAmountsByToken(owner, assets[3]);
+		  })		  
+		  .then(r => {			
+			checkBalanceAmount(r, limits[3]);
+			
+			return contract.getInvestorBalanceAmountsByToken(owner, assets[4]);
+		  })
+		  .then(r => {			
+		  	checkBalanceAmount(r, limits[4]);
+			  
+			return contract.getInvestorBalanceAmountsByToken(owner, assets[5]);
+  		  })
+		  .then(r => {			
+			checkBalanceAmount(r, limits[5]);
+			
+			return contract.getInvestorBalanceAmountsByToken(owner, assets[6]);
+		  })
+		  .then(r => {			
+		    checkBalanceAmount(r, limits[6]);
 		  });
 	});
 
