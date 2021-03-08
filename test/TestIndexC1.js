@@ -10,7 +10,7 @@ const web3 = require('web3');
 
 const IndexC1 = artifacts.require("IndexC1");
 
-const checkBalanceAmount = (result, limit) => {
+const checkBalance = (result, limit) => {
 	const balanceEthAmount = new BigNumber(Object.assign({}, result).ethAmount);
 	const balanceTokAmount = new BigNumber(Object.assign({}, result).tokAmount);
 
@@ -54,14 +54,13 @@ contract('IndexC1', (accounts) => {
 		expect(await instance.name.call()).to.equal(name);
 	});
 	
-	it("#enterMarket splits and swaps the funds sent", async () => {
+	it("#enterMarket splits and swaps the funds sent to tokens", async () => {
 		let contract;
 		let value;
 		
 		return new Promise((resolve, reject) => {
 		  resolve(instance);
-		})
-		  .then(i => {
+		}).then(i => {
 			contract = i;
 			value = new BigNumber(1000000000000000000);
 			  
@@ -69,8 +68,7 @@ contract('IndexC1', (accounts) => {
 				from: owner,
 				value: value.toString()
 			});
-		  })
-		  .then(r => {
+		  }).then(r => {
 		  	expect(r.logs.length).to.equal(1);
 			expect(r.receipt.logs[0].event).to.equal('EnterMarket');
 			
@@ -79,41 +77,58 @@ contract('IndexC1', (accounts) => {
 			expect(r.receipt.logs[0].args.amountDeposited_.toString()).to.equal(value.toString());
 			expect(r.receipt.logs[0].args.currentBlock_.toString()).to.not.be.null;
 		
-			return contract.getInvestorBalanceAmountsByToken(owner, assets[0]);
-		  })
-		  .then(r => {
-		  	checkBalanceAmount(r, limits[0]);
+			return contract.getInvestorBalanceByToken(owner, assets[0]);
+		  }).then(r => {
+		  	checkBalance(r, limits[0]);
 			
-			return contract.getInvestorBalanceAmountsByToken(owner, assets[1]);
-		  })
-		  .then(r => {			
-			checkBalanceAmount(r, limits[1]);
+			return contract.getInvestorBalanceByToken(owner, assets[1]);
+		  }).then(r => {			
+			checkBalance(r, limits[1]);
 			
-			return contract.getInvestorBalanceAmountsByToken(owner, assets[2]);
-		  })
-		  .then(r => {			
-			checkBalanceAmount(r, limits[2]);
+			return contract.getInvestorBalanceByToken(owner, assets[2]);
+		  }).then(r => {			
+			checkBalance(r, limits[2]);
 			
-			return contract.getInvestorBalanceAmountsByToken(owner, assets[3]);
-		  })		  
-		  .then(r => {			
-			checkBalanceAmount(r, limits[3]);
+			return contract.getInvestorBalanceByToken(owner, assets[3]);
+		  }).then(r => {			
+			checkBalance(r, limits[3]);
 			
-			return contract.getInvestorBalanceAmountsByToken(owner, assets[4]);
-		  })
-		  .then(r => {			
-		  	checkBalanceAmount(r, limits[4]);
+			return contract.getInvestorBalanceByToken(owner, assets[4]);
+		  }).then(r => {			
+		  	checkBalance(r, limits[4]);
 			  
-			return contract.getInvestorBalanceAmountsByToken(owner, assets[5]);
-  		  })
-		  .then(r => {			
-			checkBalanceAmount(r, limits[5]);
+			return contract.getInvestorBalanceByToken(owner, assets[5]);
+  		  }).then(r => {			
+			checkBalance(r, limits[5]);
 			
-			return contract.getInvestorBalanceAmountsByToken(owner, assets[6]);
-		  })
-		  .then(r => {			
-		    checkBalanceAmount(r, limits[6]);
+			return contract.getInvestorBalanceByToken(owner, assets[6]);
+		  }).then(r => {			
+		    checkBalance(r, limits[6]);
 		  });
+	});
+	
+	it("#exitMarket splits and swaps the funds sent to ether", async () => {
+		let contract;
+		let value;
+		
+		return new Promise((resolve, reject) => {
+		  resolve(instance);
+		}).then(i => {
+			contract = i;
+			value = new BigNumber(1000000000000000000);
+			  
+			return i.enterMarket({
+				from: owner,
+				value: value.toString()
+			});
+		}).then(r => {
+			expect(r.logs.length).to.equal(1);
+			expect(r.receipt.logs[0].event).to.equal('EnterMarket');
+			
+		// 	return i.exitMarket();
+		// }).then(r => {
+		// 	eval(pry.it);
+		});
 	});
 
 	it("#getAssets should return the list of assets", async () => {  

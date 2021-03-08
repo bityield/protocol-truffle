@@ -26,25 +26,13 @@ contract IndexC1 is Ownable {
   // example: {0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984 => 100000000000000000}
   mapping (address => uint256) internal assetLimits;
   
-  // allocationBalances; the ledger for the asset token spread for the investor
-  mapping (address => allocationBalance[]) internal allocationBalances;
-
-  // allocationBalance; holds token amounts for a given investor in the allocationBalances mapping
-  struct allocationBalance {
-    address token;
-    uint etherAmount;
-    uint amountIn;
-    uint amountOut;
-    uint currentBlock;
-  }
-  
-  // balanceAmounts; one level deeper to hold the balance of a specific token per an address
+  // balances; one level deeper to hold the balance of a specific token per an address
   // example: {0xInvestorAddress: {0xTokenAddress => (uint256 balance)}
-  mapping (address => mapping (address => balanceAmount)) private balanceAmounts;
+  mapping (address => mapping (address => balance)) internal balances;
   
-  // balanceAmounts; used to hold a more efficient set of balances per investor address
+  // balance; used to hold a more efficient set of balances per investor address
   // and token address
-  struct balanceAmount {
+  struct balance {
     uint ethAmount;
     uint tokAmount;
   }
@@ -131,49 +119,33 @@ contract IndexC1 is Ownable {
       uint256 tokenEtherAmount = tokenEtherBase.div(ETHER_BASE);
     
       // LIVE -----------------------------------------------------------------------
-      // try uniswapRouter.swapExactETHForTokens{ 
-      //   value: tokenEtherAmount 
-      // }(
-      //   0, 
-      //   getPathForETHtoTOKEN(tokenAddress), 
-      //   address(this), 
-      //   block.timestamp.add(120)
-      // ) returns (uint[] memory tokenAmounts) {
-      //     // allocationBalances[msg.sender].push(allocationBalance(
-      //     //    tokenAddress,
-      //     //    tokenEtherAmount,
-      //     //    tokenAmounts[1],
-      //     //    tokenAmounts[0],
-      //     //    block.number
-      //     // ));
-      //     
-      //     balanceAmounts[msg.sender][tokenAddress] = balanceAmount(
-      //       tokenAmounts[0], 
-      //       tokenAmounts[1]
-      //     );
-      //       
-      //     emit SwapSuccess(tokenAddress, tokenEtherAmount, tokenAmounts);
-      // } catch Error(string memory _err) {
-      //     emit SwapFailureString(tokenAddress, _err);
-      //     continue;
-      // } catch (bytes memory _err) {
-      //     emit SwapFailureBytes(tokenAddress, _err);
-      //     continue;
-      // }
+      try uniswapRouter.swapExactETHForTokens{ 
+        value: tokenEtherAmount 
+      }(
+        0, 
+        getPathForETHtoTOKEN(tokenAddress), 
+        address(this), 
+        block.timestamp.add(120)
+      ) returns (uint[] memory tokenAmounts) {
+          balances[msg.sender][tokenAddress] = balance(
+            tokenAmounts[0], 
+            tokenAmounts[1]
+          );
+            
+          emit SwapSuccess(tokenAddress, tokenEtherAmount, tokenAmounts);
+      } catch Error(string memory _err) {
+          emit SwapFailureString(tokenAddress, _err);
+          continue;
+      } catch (bytes memory _err) {
+          emit SwapFailureBytes(tokenAddress, _err);
+          continue;
+      }
       
       // TEST -----------------------------------------------------------------------
-      // allocationBalances[msg.sender].push(allocationBalance(
-      //   tokenAddress, 
+      // balances[msg.sender][tokenAddress] = balance(
       //   tokenEtherAmount, 
-      //   150000000000000000,
-      //   12434562745188401,
-      //   block.number
-      // ));
-      
-      balanceAmounts[msg.sender][tokenAddress] = balanceAmount(
-        tokenEtherAmount, 
-        12434562745188401
-      );
+      //   12434562745188401
+      // );
   
       // Increment the totalEther deposited
       totalEther = totalEther.add(tokenEtherAmount);
@@ -197,11 +169,11 @@ contract IndexC1 is Ownable {
     // Keep track of the ether accounted for so if failure, the refunded amount is proper
     uint256 totalEther = 0;
     
-    for (uint i = 0; i < allocationBalances[msg.sender].length; i++) {
+    for (uint i = 0; i < assetAddresses.length; i++) {
       address tokenAddress = assetAddresses[i];
 
-      // Take the original amountIn and compute it's true value on a basis of 1 Ether
-      uint amountIn = allocationBalances[msg.sender][i].amountIn;
+      // The original token amount, not ether
+      uint amountIn = balances[msg.sender][tokenAddress].tokAmount;
       
       address[] memory path = getPathForTOKENtoETH(tokenAddress);
       uint[] memory returnedAmounts = uniswapRouter.getAmountsOut(amountIn, path);
@@ -221,6 +193,9 @@ contract IndexC1 is Ownable {
         block.timestamp.add(100)
       ) returns (uint[] memory tokenAmounts) {
         totalEther = totalEther.add(tokenAmounts[1]);
+        
+        // Remove the record entry for this balance, very important
+        delete balances[msg.sender][tokenAddress];
         
         emit SwapSuccess(tokenAddress, amountIn, tokenAmounts);
       } catch Error(string memory _err) {
@@ -248,12 +223,14 @@ contract IndexC1 is Ownable {
     // we will need to implement a controller multi approval here, not just the owner
     // sender can initiate this method.
     
+    // Reduce the token balances
     for (uint i = 0; i < assetAddresses.length; i++) {
       IERC20 t = IERC20(assetAddresses[i]);
       uint256 balanceOfToken = t.balanceOf(address(this));      
       t.transfer(recipient, balanceOfToken);
     }
     
+    // Reduce the ether balance
     (bool success,) = msg.sender.call{ value: address(this).balance }("");
     require(success, "custodialWithdraw; withdraw failed");
   }
@@ -277,19 +254,12 @@ contract IndexC1 is Ownable {
   }
 
   /* ============ Getters ============ */
-
-  // getAllocationBalances; returns the investors tokens and balances invested in
-  function getAllocationBalances(address investor) 
-    public view returns(allocationBalance[] memory) 
-  { 
-    return allocationBalances[investor]; 
-  }
   
-  // getInvestorBalanceAmountsByToken; returns the investors token balance
-  function getInvestorBalanceAmountsByToken(address investor, address token) 
-    public view returns(balanceAmount memory) 
+  // getInvestorBalanceByToken; returns the investors token balance
+  function getInvestorBalanceByToken(address investor, address token) 
+    public view returns(balance memory) 
   { 
-    return balanceAmounts[investor][token]; 
+    return balances[investor][token]; 
   }
   
   // getAssets; returns an array of all the Fund's investable assets only
