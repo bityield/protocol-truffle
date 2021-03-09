@@ -1,8 +1,9 @@
+// SPDX-License-Identifier: Bityield
 pragma solidity ^0.6.8;
 
 /**
 * @title Uint256ArrayUtils
-* @author BitYield
+* @author Bityield
 *
 * Utility functions to handle Uint256 Arrays
 */
