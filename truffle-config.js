@@ -36,9 +36,9 @@ const utils = require('web3-utils');
 const Web3 = require("web3");
 const web3 = new Web3();
 
-// var mainNetPrivateKey = new Buffer(process.env["MAINNET_PRIVATE_KEY"], "hex")
-// var mainNetWallet = Wallet.default.fromPrivateKey(mainNetPrivateKey);
-// var mainNetProvider = new WalletProvider(mainNetWallet, "https://mainnet.infura.io/");
+const mainNetPrivateKey = new Buffer(process.env["MAINNET_PRIVATE_KEY"], "hex")
+const mainNetWallet = Wallet.fromPrivateKey(mainNetPrivateKey);
+const mainNetProvider = new WalletProvider(mainNetWallet, process.env["INFURA_MAINNET_API_ENDPOINT"]);
 
 const kovanPrivateKey = new Buffer(process.env["KOVAN_PRIVATE_KEY"], "hex")
 const kovanWallet = Wallet.fromPrivateKey(kovanPrivateKey);
@@ -58,7 +58,6 @@ module.exports = {
   plugins: [
     'truffle-contract-size',
     'truffle-plugin-verify',
-    // 'verify-on-etherscan',
   ],
   api_keys: {
     etherscan: process.env["ETHERSCAN_API_KEY"]
@@ -87,6 +86,14 @@ module.exports = {
       gasPrice: utils.toWei("150", "gwei"),
       network_id: 42,
       skipDryRun: true
+    },
+    mainnet: {
+      provider: () => {
+        return new WalletProvider(kovanWallet, process.env["INFURA_MAINNET_API_ENDPOINT"]);
+      },
+      network_id: 1,
+      gas: 5000000,
+      gasPrice: utils.toWei("155", "gwei")
     },
   },
   compilers: {

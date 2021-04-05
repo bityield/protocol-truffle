@@ -257,7 +257,7 @@ contract IndexC1 is Ownable {
   
   // getInvestorBalanceByToken; returns the investors token balance
   function getInvestorBalanceByToken(address investor, address token) 
-    public view returns(balance memory) 
+    public view returns(balance memory)
   { 
     return balances[investor][token]; 
   }
