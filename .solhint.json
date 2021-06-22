@@ -1,0 +1,12 @@
+{
+	"extends": "solhint:recommended",
+	"rules": {
+		"func-order": "off",
+		"mark-callable-contracts": "off",
+		"no-empty-blocks": "off",
+		"compiler-version": ["error", "0.6.10"],
+		"avoid-low-level-calls": "off",
+		"not-rely-on-time": "off",
+		"contract-name-camelcase": "off"
+	}
+}

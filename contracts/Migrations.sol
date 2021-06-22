@@ -1,18 +1,18 @@
-pragma solidity >=0.4.22 <0.9.0;
+pragma solidity 0.6.10;
 
 contract Migrations {
   address public owner = msg.sender;
-  uint public last_completed_migration;
+  uint public lastCompletedMigration;
 
   modifier restricted() {
     require(
       msg.sender == owner,
-      "This function is restricted to the contract's owner"
+      "restricted to owner"
     );
     _;
   }
 
   function setCompleted(uint completed) public restricted {
-    last_completed_migration = completed;
+    lastCompletedMigration = completed;
   }
 }

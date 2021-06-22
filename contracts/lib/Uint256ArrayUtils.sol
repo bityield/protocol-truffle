@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Bityield
-pragma solidity ^0.6.8;
+pragma solidity 0.6.10;
 
 /**
 * @title Uint256ArrayUtils
@@ -10,20 +10,23 @@ pragma solidity ^0.6.8;
 library Uint256ArrayUtils {
 	/**
 	 * Returns the combination of the two arrays
-	 * @param A The first array
-	 * @param B The second array
-	 * @return Returns A extended by B
+	 * @param a The first array
+	 * @param b The second array
+	 * @return Returns a extended by b
 	 */
-	function extend(uint256[] memory A, uint256[] memory B) internal pure returns (uint256[] memory) {
-		uint256 aLength = A.length;
-		uint256 bLength = B.length;
+	function extend(uint256[] memory a, uint256[] memory b) internal pure returns (uint256[] memory) {
+		uint256 aLength = a.length;
+		uint256 bLength = b.length;
 		uint256[] memory newUints = new uint256[](aLength + bLength);
+		
 		for (uint256 i = 0; i < aLength; i++) {
-			newUints[i] = A[i];
+			newUints[i] = a[i];
 		}
+
 		for (uint256 j = 0; j < bLength; j++) {
-			newUints[aLength + j] = B[j];
+			newUints[aLength + j] = b[j];
 		}
+
 		return newUints;
 	}
 }

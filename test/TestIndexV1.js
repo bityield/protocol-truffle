@@ -8,7 +8,7 @@ const truffleAssert = require('truffle-assertions');
 const utils = require('ethers').utils;
 const web3 = require('web3');
 
-const IndexC1 = artifacts.require("IndexC1");
+const IndexV1 = artifacts.require("IndexV1");
 
 const checkBalance = (result, limit) => {
 	const balanceEthAmount = new BigNumber(Object.assign({}, result).ethAmount);
@@ -18,10 +18,11 @@ const checkBalance = (result, limit) => {
 	expect(balanceTokAmount.toNumber()).to.equal(12434562745188401);
 };
 
-contract('IndexC1', (accounts) => {
+contract('IndexV1', (accounts) => {
 	let instance;
 	
 	const name = "TestIndexV1";
+	const symbol = "BYTIV1";
 	const assets = [
 		"0xDe6bD79980505DC1FeE66A2BbC3881B17EC17818",
 		"0x482dC9bB08111CB875109B075A40881E48aE02Cd",
@@ -42,16 +43,25 @@ contract('IndexC1', (accounts) => {
 		"60000000000000000",
 	];
 	
-	const owner = accounts[0];
+	const owner = accounts[2];
 	
 	beforeEach(async () => {	
-		await IndexC1.new(name, assets, limits).then((contract) => {
+		await IndexV1.new(name, symbol, assets, limits).then((contract) => {
 			instance = contract;
 		});
 	});
 	
 	it("#name should return the correct name", async () => {
 		expect(await instance.name.call()).to.equal(name);
+	});
+	
+	it("#symbol should return the correct symbol", async () => {
+		expect(await instance.symbol.call()).to.equal(symbol);
+	});
+	
+	it("#totalSupply should return the correct balance", async () => {
+		const result = await instance.totalSupply();
+		expect(result.toString()).to.equal("0");
 	});
 	
 	it("#enterMarket splits and swaps the funds sent to tokens", async () => {
@@ -69,13 +79,14 @@ contract('IndexC1', (accounts) => {
 				value: value.toString()
 			});
 		  }).then(r => {
-		  	expect(r.logs.length).to.equal(1);
-			expect(r.receipt.logs[0].event).to.equal('EnterMarket');
+		  	expect(r.logs.length).to.equal(2);
+			expect(r.receipt.logs[1].event).to.equal('EnterMarket');
 			
 			// Ensure that the receipt contains the true value received
-			expect(r.receipt.logs[0].args.from_).to.equal(owner);
-			expect(r.receipt.logs[0].args.amountDeposited_.toString()).to.equal(value.toString());
-			expect(r.receipt.logs[0].args.currentBlock_.toString()).to.not.be.null;
+			expect(r.receipt.logs[1].args.from_).to.equal(owner);
+			expect(r.receipt.logs[1].args.amountDeposited_.toString()).to.equal(value.toString());
+			expect(r.receipt.logs[1].args.cTokens_.toString()).to.equal('10000000000000000000');
+			expect(r.receipt.logs[1].args.currentBlock_.toString()).to.not.be.null;
 		
 			return contract.getInvestorBalanceByToken(owner, assets[0]);
 		  }).then(r => {
@@ -122,8 +133,8 @@ contract('IndexC1', (accounts) => {
 				value: value.toString()
 			});
 		}).then(r => {
-			expect(r.logs.length).to.equal(1);
-			expect(r.receipt.logs[0].event).to.equal('EnterMarket');
+			expect(r.logs.length).to.equal(2);
+			expect(r.receipt.logs[1].event).to.equal('EnterMarket');
 			
 		// 	return i.exitMarket();
 		// }).then(r => {
